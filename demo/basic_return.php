@@ -1,45 +1,54 @@
 <?php
 
-require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
+use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
-use PhpAmqpLib\Connection\AMQPConnection;
 
-$connection = new AMQPConnection('localhost', 5672, 'guest', 'guest');
+$connection = new AMQPStreamConnection('localhost', 5672, 'guest', 'guest');
 $channel = $connection->channel();
 
 // declare  exchange but don`t bind any queue
 $channel->exchange_declare('hidden_exchange', 'topic');
 
-$msg = new AMQPMessage("Hello World!");
+$message = new AMQPMessage("Hello World!");
 
 echo " [x] Sent non-mandatory ...";
-$channel->basic_publish($msg,
+$channel->basic_publish(
+    $message,
     'hidden_exchange',
-    'rkey');
+    'rkey'
+);
 echo " done.\n";
 
 $wait = true;
 
-$return_listener = function ($reply_code, $reply_text,
-    $exchange, $routing_key, $msg) use ($wait) {
+$returnListener = function (
+    $replyCode,
+    $replyText,
+    $exchange,
+    $routingKey,
+    $message
+) use ($wait) {
     $GLOBALS['wait'] = false;
 
     echo "return: ",
-    $reply_code, "\n",
-    $reply_text, "\n",
+    $replyCode, "\n",
+    $replyText, "\n",
     $exchange, "\n",
-    $routing_key, "\n",
-    $msg->body, "\n";
+    $routingKey, "\n",
+    $message->body, "\n";
 };
 
-$channel->set_return_listener($return_listener);
+$channel->set_return_listener($returnListener);
 
 echo " [x] Sent mandatory ... ";
-$channel->basic_publish($msg,
+$channel->basic_publish(
+    $message,
     'hidden_exchange',
     'rkey',
-    true );
+    true
+);
 echo " done.\n";
 
 while ($wait) {
